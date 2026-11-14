@@ -189,7 +189,7 @@ The shell sends no message before `ready`.
   "hiddenContent": ["note", "icon"], "warnings": [] }
 ```
 
-- `readOnlyNodes`: number of nodes whose **text** cannot be edited (rich text, multi-line text). These nodes can still be moved, deleted, or given children.
+- `readOnlyNodes`: number of nodes whose **text** cannot be edited (rich text: in a `<richcontent TYPE="NODE">` child, or a node with no `TEXT`). These nodes can still be moved, deleted, or given children. A plain-text node whose `TEXT` contains newlines is edited with the multi-line editor and is **not** counted here; its newlines are saved back as `&#xa;`, as Freeplane writes them.
 - `readOnly`: whether the **whole map** is read-only: nothing can be changed, either because the shell asked for it in `load` or because of its format version (see below).
 - `mapVersion`: the `version` attribute of `<map>`, as found in the file.
 - `title`: the root's text as displayed (plain text, possibly on several lines; a text Freeplane provides, such as a new map's root, in the user's language). Shells show it with the file's name, so that the user sees both what the map is about and which file holds it. Kept up to date by `titleChanged`.
@@ -263,7 +263,7 @@ Sent whenever what the shell knows about the selected node changes: another node
 | `id` | Target of the editing commands |
 | `revision` | Revision of the map described here; sent back with `deleteNode` |
 | `root` | The root cannot be deleted, and has no siblings: disable Delete and Add sibling |
-| `textEditable` | Enable Edit text (false for rich or multi-line text, or a read-only map). In an editable map, false means the node shows a lock: explain it while it is selected (its text can only be edited in Freeplane; the node can still be moved or deleted) |
+| `textEditable` | Enable Edit text (false for rich text only, or a read-only map). Multi-line plain text is editable: Enter validates, Shift+Enter inserts a line break (as in Freeplane). In an editable map, false means the node shows a lock: explain it while it is selected (its text can only be edited in Freeplane; the node can still be moved or deleted) |
 | `link` | The node's link as written, whatever its kind (`null`: none). Offer to modify or remove it (`setLink`) |
 | `textLink` | The first web address written in the node's text, as written (`null`: none). Offer it as the link to add |
 | `hidden` | Content of the node itself that is not displayed, by kind: what its dot stands for. Explain it while the node is selected (e.g. "1 note, 2 icons, kept") |

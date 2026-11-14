@@ -445,8 +445,10 @@ export class JsMindView implements View {
   /**
    * A text area instead of jsMind's one-line field, which jsMind only fills, places, selects
    * and reads (checked in its source): a long text wraps while it is edited, as in the node
-   * and in Freeplane. The text stays on one line: Enter validates, and line breaks pasted
-   * become spaces (a text on several lines could no longer be edited here).
+   * and in Freeplane. A topic may hold several lines (Freeplane writes a newline as `&#xa;`):
+   * Enter validates the edit, and Shift+Enter inserts a line break, as in Freeplane.
+   * Escape cancels, as in Freeplane: the editor gets the node's text back, and jsMind
+   * changes nothing for an unchanged text (a new node's placeholder: no node is added).
    */
   private textEditor(fitted: () => void): HTMLTextAreaElement {
     const view = this.jm.view;
@@ -455,18 +457,28 @@ export class JsMindView implements View {
     editor.rows = 1;
     // `key`, not only the legacy keyCode 13 jsMind checks: virtual keyboards (Android) and
     // synthetic events may leave it at 0 or 229.
-    // Escape cancels, as in Freeplane: the editor gets the node's text back, and jsMind
-    // changes nothing for an unchanged text (a new node's placeholder: no node is added).
     editor.addEventListener('keydown', (event) => {
       const escape = event.key === 'Escape';
-      if (!escape && event.key !== 'Enter' && event.keyCode !== 13) return;
-      event.preventDefault(); // no line break
-      event.stopPropagation();
-      if (escape && view.editing_node) editor.value = view.editing_node.topic;
-      view.edit_node_end();
+      const enter = event.key === 'Enter' || event.keyCode === 13;
+      if (escape) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (view.editing_node) editor.value = view.editing_node.topic;
+        view.edit_node_end();
+        return;
+      }
+      // Enter validates; Shift+Enter inserts a line break (left to the textarea's
+      // default), as in Freeplane. A line break pasted in is kept too (see input).
+      if (enter && !event.shiftKey) {
+        event.preventDefault(); // no line break in the textarea: the edit ends instead
+        event.stopPropagation();
+        view.edit_node_end();
+      }
     });
     editor.addEventListener('input', () => {
-      if (/[\r\n]/.test(editor.value)) editor.value = editor.value.replace(/\r\n|\r|\n/g, ' ');
+      // Normalize CRLF/CR (some clipboards, some platforms) to a single `\n`,
+      // the form Freeplane stores, but keep the line breaks.
+      if (/[\r]/.test(editor.value)) editor.value = editor.value.replace(/\r\n|\r/g, '\n');
       fitHeight(editor);
       fitted();
     });
@@ -528,11 +540,11 @@ export class JsMindView implements View {
       // Icons on the left, the text as a block beside them, as in Freeplane.
       const text = document.createElement('span');
       text.className = 'mapling-text';
-      text.textContent = node.topic;
+      appendMultiline(text, node.topic);
       element.textContent = ''; // not replaceChildren: Chromium 86, one past the minimum
       element.append(this.icons(link), text);
     } else {
-      element.textContent = node.topic;
+      appendMultiline(element, node.topic);
     }
     element.classList.toggle('mapling-locked', !!node.data.readOnly);
     element.classList.toggle('mapling-hidden-content', !!node.data.hidden);
@@ -601,6 +613,26 @@ export function scrollToShow(box: Box, area: Box, margin: number): { x: number; 
     return Math.min(Math.max(end + margin - areaEnd, 0), back);
   };
   return { x: along(box.left, box.right, area.left, area.right), y: along(box.top, box.bottom, area.top, area.bottom) };
+}
+
+/**
+ * Renders plain text into `element`, with each `\n` as a line break. The text is
+ * put in as text nodes (never parsed as HTML), so a topic stays plain text even
+ * when it contains `<` or `&`; only the newline character becomes a `<br>`.
+ * Freeplane writes a newline as `&#xa;` in its XML, read back as `\n`.
+ */
+function appendMultiline(element: HTMLElement, topic: string): void {
+  if (!topic) {
+    element.textContent = '';
+    return;
+  }
+  const lines = topic.split('\n');
+  element.textContent = ''; // clears any previous nodes (icons are added separately)
+  element.appendChild(document.createTextNode(lines[0]));
+  for (let i = 1; i < lines.length; i++) {
+    element.appendChild(document.createElement('br'));
+    element.appendChild(document.createTextNode(lines[i]));
+  }
 }
 
 /** As tall as its text, on every WebView (field-sizing is recent: Chromium 123). */

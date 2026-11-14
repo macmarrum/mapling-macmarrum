@@ -458,8 +458,13 @@ export class MindMap {
   }
 
   private isReadOnlyElement(el: Element): boolean {
-    const text = el.getAttribute('TEXT') ?? (el.hasAttribute('LOCALIZED_TEXT') ? '' : null);
-    return text === null || text.includes('\n') || !!this.richContent(el);
+    // A node with no TEXT (only LOCALIZED_TEXT, which the file provides, or a
+    // <richcontent TYPE="NODE"> child) cannot be edited as plain text without
+    // losing information. A plain TEXT that merely contains newlines is fine:
+    // it is edited with a multi-line editor and saved back with `&#xa;`.
+    if (this.richContent(el)) return true;
+    const text = el.getAttribute('TEXT');
+    return text === null && !el.hasAttribute('LOCALIZED_TEXT');
   }
 
   private side(el: Element): Side {

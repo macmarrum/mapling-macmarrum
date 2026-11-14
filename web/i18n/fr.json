@@ -49,7 +49,7 @@
   "download.confirmButton": "Marquer la carte comme enregistrée",
   "draft.restoreOther": "Des modifications non enregistrées d’un fichier nommé {name}, du {date}, ont été conservées. Elles ont été faites sur un autre fichier de ce nom, ou sur une version antérieure de celui-ci. Les restaurer quand même ? (Téléchargez alors la copie sous un autre nom.) Si vous refusez, elles restent conservées.",
   "action.center": "Recentrer",
-  "hint.locked": "Texte non modifiable ici (texte enrichi ou sur plusieurs lignes) : modifiez-le dans Freeplane. Le nœud reste déplaçable et supprimable.",
+  "hint.locked": "Texte non modifiable ici (texte enrichi) : modifiez-le dans Freeplane. Le nœud reste déplaçable et supprimable.",
   "hint.hidden": "Ce nœud contient des éléments non affichés ici, et conservés : {items}.",
   "action.about": "À propos",
   "about.version": "Version {version}",

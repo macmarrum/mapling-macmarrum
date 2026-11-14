@@ -46,7 +46,7 @@ This page describes the inside of the core (`core/`). To write a shell, read [BR
 
 **Operations keep Freeplane's layout.** Each `<node>` stays on its own line; `POSITION` is set only on children of the root and placed before `ID`, as Freeplane orders attributes; new IDs follow Freeplane's `ID_<number>` format and never reuse an existing one, style nodes included.
 
-**Two kinds of read-only.** A *read-only map* cannot change at all (unsupported format, duplicate IDs, or the shell's request). A node with *non-editable text* (rich text, multi-line text, no `TEXT`) can still be moved, removed or given children, since that loses nothing.
+**Two kinds of read-only.** A *read-only map* cannot change at all (unsupported format, duplicate IDs, or the shell's request). A node with *non-editable text* (rich text — in a `<richcontent TYPE="NODE">` child — or no `TEXT`) can still be moved, removed or given children, since that loses nothing. Plain-text nodes with newlines are edited with the multi-line editor (Enter validates, Shift+Enter inserts a line break, as in Freeplane) and saved back with `&#xa;`.
 
 **Hidden content.** The core reports content it does not display (notes, details, attributes, links, icons, connectors, images, including images and link targets inside rich text) per node, per map, and per branch before deletion. Formatting is not reported.
 

@@ -58,7 +58,9 @@ test('a map from a newer Freeplane opens read-only', () => {
 test('projection of fixture01: topics, sides, read-only nodes', () => {
   const map = new MindMap(fixture('fixture01.mm'));
   assert.equal(map.nodeCount, 8);
-  assert.equal(map.readOnlyNodeCount, 2);
+  // Only the rich-content node is read-only now; the multi-line plain-text node
+  // is edited with the multi-line editor and saved back with `&#xa;`.
+  assert.equal(map.readOnlyNodeCount, 1);
   const view = map.toView();
   assert.equal(view.topic, 'Root node');
   assert.equal(view.direction, undefined);
@@ -66,7 +68,7 @@ test('projection of fixture01: topics, sides, read-only nodes', () => {
   const rich = view.children[1].children[0];
   assert.deepEqual([rich.topic, rich.readOnly], ['Some text in bold\u00a0and italic.', true]);
   const multiline = view.children[4].children[0];
-  assert.equal(multiline.readOnly, true);
+  assert.equal(multiline.readOnly, undefined);
   assert.ok(multiline.topic.startsWith('A long text... with a new line.\nLorem ipsum'));
   assert.equal(view.children[0].readOnly, undefined);
 });

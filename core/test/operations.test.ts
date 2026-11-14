@@ -58,11 +58,19 @@ test('updateText with the same text changes nothing', () => {
   assert.equal(map.serialize(), original);
 });
 
-test('updateText refuses rich-text and multi-line nodes', () => {
+test('updateText refuses rich-text nodes but edits multi-line ones', () => {
   const map = new MindMap(original);
+  // Rich content stays read-only: editing it would lose information.
   assert.throws(() => map.updateText(B_RICH_CHILD, 'x'), (e) => code(e) === 'READ_ONLY_NODE');
-  assert.throws(() => map.updateText(E_MULTILINE_CHILD, 'x'), (e) => code(e) === 'READ_ONLY_NODE');
-  assert.equal(map.serialize(), original);
+  // A plain-text node whose TEXT contains a newline is edited as multi-line text;
+  // the newline is saved back as `&#xa;`, as Freeplane writes it.
+  const expected = replaceOnce(
+    original,
+    LONG_ATTRS,
+    `<node TEXT="line one&#xa;line two" ID="ID_1873754233" CREATED="1791070595818" MODIFIED="${NOW}"/>`
+  );
+  assert.equal(map.updateText(E_MULTILINE_CHILD, 'line one\nline two', NOW), true);
+  assert.equal(map.serialize(), expected);
 });
 
 test('addNode under a leaf opens the element and puts the child on its own line', () => {
@@ -82,6 +90,17 @@ test('addNode under the root sets POSITION in Freeplane attribute order', () => 
     `<node TEXT="Left one" POSITION="top_or_left" ID="${key}" CREATED="${NOW}" MODIFIED="${NOW}"/>\n` + A_LINE);
   assert.equal(map.serialize(), expected);
   assert.deepEqual(map.childKeys(ROOT)[0], key);
+});
+
+test('addNode keeps newlines in the text, saved as &#xa; as Freeplane does', () => {
+  const map = new MindMap(original);
+  const key = map.addNode(C, 0, 'first\nsecond', 'right', NOW);
+  const expected = replaceOnce(original, C_LINE,
+    C_LINE.replace('/>', '>') +
+      `\n<node TEXT="first&#xa;second" ID="${key}" CREATED="${NOW}" MODIFIED="${NOW}"/>\n</node>`);
+  assert.equal(map.serialize(), expected);
+  // The new node is editable (plain text, even with newlines): not read-only.
+  assert.equal(map.isReadOnly(key), false);
 });
 
 test('addNode at the end of existing children goes after the last child', () => {

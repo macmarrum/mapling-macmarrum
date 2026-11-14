@@ -53,7 +53,7 @@ test('ready, then load reports the map and shows it', () => {
   assert.deepEqual(take(), [{ v: 1, type: 'ready', coreVersion: projectVersion }]);
   send({ type: 'load', requestId: 'r1', name: 'fixture01.mm', data: base64(original) });
   assert.deepEqual(take(), [{
-    v: 1, type: 'loaded', requestId: 'r1', nodeCount: 8, readOnlyNodes: 2, readOnly: false,
+    v: 1, type: 'loaded', requestId: 'r1', nodeCount: 8, readOnlyNodes: 1, readOnly: false,
     mapVersion: 'freeplane 1.12.15', title: 'Root node', hiddenContent: ['note'], warnings: [],
   }]);
   assert.equal(view.shown.length, 1);
