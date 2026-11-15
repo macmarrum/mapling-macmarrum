@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 Benoit Mercier
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+<!-- Mapling's languages, offered by Android 13+ in the app's settings (Language), and in
+     Preferences. One line per res/values-xx folder; English is the default (res/values). -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="fr" />
+</locale-config>

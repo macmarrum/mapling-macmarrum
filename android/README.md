@@ -1,6 +1,6 @@
 # Mapling for Android
 
-The Android shell: a single activity around a WebView that runs the core (`core/`), plus native menus, messages and file access. It follows the shell obligations of [docs/BRIDGE.md](../docs/BRIDGE.md).
+The Android shell: an activity around a WebView that runs the core (`core/`), plus native menus, messages and file access, and a Preferences page. It follows the shell obligations of [docs/BRIDGE.md](../docs/BRIDGE.md).
 
 - Opens and saves documents through the system's document picker (Storage Access Framework): Google Drive, local storage, or any other document provider. The app asks for **no permission**, not even network access.
 - Serves the core to the WebView from the app's assets; the page cannot load anything else.
@@ -54,6 +54,7 @@ Debug builds let Chrome inspect the WebView: with the device connected, open `ch
 | File | Role |
 |---|---|
 | `src/main/kotlin/.../MainActivity.kt` | The activity: toolbar and menus, document picker, bridge messages, saving, drafts, unsaved-changes guards |
+| `src/main/kotlin/.../PreferencesActivity.kt` | The Preferences page: the interface's language (the phone's, or one of Mapling's) |
 | `src/main/kotlin/.../AssetServer.kt` | Serves the page and the core from the app's assets, and nothing else |
 | `src/main/kotlin/.../DraftStore.kt` | Drafts of unsaved changes, one per document |
 | `src/main/kotlin/.../WriteCheck.kt` | Whether a document may be overwritten: not if it was changed elsewhere |

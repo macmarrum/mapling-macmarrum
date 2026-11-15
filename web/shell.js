@@ -22,7 +22,7 @@ const state = {
   dirty: false,
   history: { canUndo: false, canRedo: false },
   selection: null, // node reported by selectionChanged
-  messages: [], // { kind: 'info' | 'warning' | 'error', text }
+  messages: [], // { kind: 'info' | 'warning' | 'error', text: () => string }
   draftFailed: false,
   downloadToConfirm: null, // saveId of the last copy downloaded, until the user confirms it
 };
@@ -30,14 +30,34 @@ let requestCount = 0;
 
 // ---------- translation ----------
 
-const lang = navigator.language.toLowerCase().startsWith('fr') ? 'fr' : 'en';
+// The language chosen in Preferences, else the browser's if Mapling speaks it, else English.
+const LANGUAGES = ['en', 'fr']; // one per i18n/*.json
+const LANGUAGE_KEY = 'mapling.language';
+let chosen = (() => {
+  try {
+    const stored = window.localStorage.getItem(LANGUAGE_KEY);
+    return LANGUAGES.includes(stored) ? stored : ''; // not one of Mapling's: the browser's
+  } catch {
+    return ''; // storage disabled: a choice then holds until the page is closed
+  }
+})();
+let lang = 'en';
 let strings = {};
-fetch(`i18n/${lang}.json`)
-  .then((response) => response.json())
-  .then((loaded) => {
-    strings = loaded;
-    render();
-  });
+
+/** Shows the interface in the language now chosen: texts are fetched, then everything is drawn again. */
+function applyLanguage() {
+  const browser = navigator.language.toLowerCase().split('-')[0];
+  lang = chosen || (LANGUAGES.includes(browser) ? browser : 'en');
+  document.documentElement.lang = lang;
+  fetch(`i18n/${lang}.json`)
+    .then((response) => response.json())
+    .then((loaded) => {
+      strings = loaded;
+      render();
+    });
+}
+
+applyLanguage();
 
 /** Translated text for `key`, with `{name}` placeholders replaced by `params`. */
 function t(key, params = {}) {
@@ -100,7 +120,7 @@ function receive(message) {
       break;
     case 'error':
       state.opening = null;
-      showMessage('error', t(`error.${message.code}`));
+      showMessage('error', () => t(`error.${message.code}`));
       break;
   }
   render();
@@ -117,10 +137,10 @@ function onLoaded(message) {
   state.selection = null;
   state.downloadToConfirm = null;
   state.messages = [];
-  for (const warning of message.warnings) showMessage('warning', t(`readOnly.${warning.code}`));
+  for (const warning of message.warnings) showMessage('warning', () => t(`readOnly.${warning.code}`));
   if (message.hiddenContent.length > 0 && !hiddenNoticeShown(state.map.name)) {
-    const kinds = list(message.hiddenContent.map((kind) => t(`kind.${kind}`)));
-    showMessage('info', t('hidden.notice', { kinds }));
+    const kinds = message.hiddenContent;
+    showMessage('info', () => t('hidden.notice', { kinds: list(kinds.map((kind) => t(`kind.${kind}`))) }));
   }
 }
 
@@ -381,7 +401,23 @@ const actions = {
   // Opened apart, as a click on the link's icon (openLink); only web links, by the core's rule.
   followLink: () => window.open(window.MindCore.webLink(state.selection.link), '_blank', 'noopener,noreferrer'),
   about: () => document.getElementById('about').showModal(),
+  preferences: () => {
+    document.getElementById('language').value = chosen;
+    document.getElementById('preferences').showModal();
+  },
 };
+
+// A language chosen applies at once; the browser's again when none is.
+document.getElementById('language').addEventListener('change', (event) => {
+  chosen = event.target.value;
+  try {
+    if (chosen) window.localStorage.setItem(LANGUAGE_KEY, chosen);
+    else window.localStorage.removeItem(LANGUAGE_KEY);
+  } catch {
+    // storage disabled: the choice holds until the page is closed
+  }
+  applyLanguage();
+});
 
 function confirmDownload() {
   send({ type: 'saved', saveId: state.downloadToConfirm });
@@ -411,6 +447,7 @@ function enabled(action) {
     case 'open':
     case 'newMap':
     case 'about':
+    case 'preferences':
       return true;
     case 'close':
     case 'saveCopy':
@@ -489,6 +526,7 @@ document.addEventListener('keydown', (event) => {
 
 // ---------- display ----------
 
+/** A banner; its text is written at each display, so that it follows a change of language. */
 function showMessage(kind, text) {
   state.messages.push({ kind, text });
 }
@@ -553,9 +591,9 @@ function render() {
   document.getElementById('link-entry').textContent = t(node?.link == null ? 'action.addLink' : 'action.editLink');
 
   const messages = [...state.messages];
-  if (state.draftFailed) messages.push({ kind: 'warning', text: t('draft.failed') });
+  if (state.draftFailed) messages.push({ kind: 'warning', text: () => t('draft.failed') });
   const paragraphs = messages.map(({ kind, text }) =>
-    Object.assign(document.createElement('p'), { className: kind, textContent: text }));
+    Object.assign(document.createElement('p'), { className: kind, textContent: text() }));
   if (state.downloadToConfirm !== null) {
     const confirmation = Object.assign(document.createElement('p'), { className: 'info', textContent: t('download.confirm') });
     const button = Object.assign(document.createElement('button'), { textContent: t('download.confirmButton') });

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 Benoit Mercier
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+<!-- Preferences: one row per preference, its name and, below, its current value. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/forest"
+        android:minHeight="?android:attr/actionBarSize"
+        android:theme="@style/Mapling.Toolbar" />
+
+    <LinearLayout
+        android:id="@+id/language"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?android:attr/selectableItemBackground"
+        android:minHeight="72dp"
+        android:gravity="center_vertical"
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/preference_language"
+            android:textColor="@color/message_text"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/language_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/menu_detail"
+            android:textSize="14sp" />
+    </LinearLayout>
+</LinearLayout>

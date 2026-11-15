@@ -66,7 +66,7 @@ import java.util.concurrent.Executors
 import kotlin.concurrent.thread
 
 /**
- * The only screen: the map in a WebView, and a native menu.
+ * The main screen: the map in a WebView, and a native menu (Preferences: PreferencesActivity).
  *
  * The core runs in the WebView and talks to this shell through JSON messages
  * (docs/BRIDGE.md). The shell opens documents and passes their bytes untouched.
@@ -460,6 +460,9 @@ class MainActivity : AppCompatActivity() {
                 item.actionView = removeButton(entry, ::openDrawer) // then the list, updated
                 recentItems += item to entry
             }
+        }
+        add(menu, getString(R.string.preferences), R.drawable.ic_settings, true, group = ABOUT) {
+            startActivity(Intent(this, PreferencesActivity::class.java))
         }
         add(menu, getString(R.string.about), R.drawable.ic_info, true, group = ABOUT) { showAbout() }
 

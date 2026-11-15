@@ -3,7 +3,7 @@
 SPDX-FileCopyrightText: 2026 Benoit Mercier
 SPDX-License-Identifier: GPL-3.0-or-later
 -->
-<!-- The only screen: toolbar, messages, the map (or, with no map open, the buttons to
+<!-- The main screen: toolbar, messages, the map (or, with no map open, the buttons to
      open or create one and the recent maps), what the marks of the selected node mean,
      and its commands. -->
 <!-- The ☰ drawer (navigation) slides over the screen's content. -->
