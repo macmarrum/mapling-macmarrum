@@ -1140,11 +1140,18 @@ class MainActivity : AppCompatActivity() {
     /**
      * A recent map that cannot be read may be gone (moved, deleted, access withdrawn) or only
      * out of reach for now (a provider offline): providers do not tell which (Drive reports
-     * both as a missing file), so the user decides.
+     * both as a missing file), so the user decides. The map is named as Map info names it:
+     * at start, nothing else on screen tells which one it is.
      */
     private fun offerToForget(uri: Uri) {
+        val entry = recent.entries.find { it.document == uri.toString() }
+        val which = listOfNotNull(
+            entry?.title?.let(::oneLine)?.takeIf { it.isNotEmpty() }?.let { getString(R.string.info_map, it) },
+            entry?.name?.takeIf { it.isNotEmpty() }?.let { getString(R.string.info_file, it) },
+        )
+        val unreadable = getString(R.string.map_unreadable)
         MaterialAlertDialogBuilder(this)
-            .setMessage(R.string.map_unreadable)
+            .setMessage(if (which.isEmpty()) unreadable else which.joinToString("\n") + "\n\n" + unreadable)
             .setPositiveButton(R.string.remove_from_list) { _, _ -> forget(uri) }
             .setNegativeButton(R.string.keep, null)
             .show()
