@@ -113,46 +113,6 @@ SPDX-License-Identifier: GPL-3.0-or-later
         android:background="@color/node_bar"
         android:visibility="gone">
 
-    <!-- Room for ⋮ on both sides, so that the group stays centered and never overlaps it. -->
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginStart="@dimen/node_button_width"
-        android:layout_marginEnd="@dimen/node_button_width"
-        android:orientation="horizontal">
-
-        <ImageButton
-            android:id="@+id/edit_text"
-            style="?android:attr/borderlessButtonStyle"
-            android:layout_width="@dimen/node_button_width"
-            android:layout_height="48dp"
-            android:contentDescription="@string/edit_text"
-            android:src="@drawable/ic_edit"
-            app:tint="@color/node_icon"
-            android:tooltipText="@string/edit_text" />
-
-        <ImageButton
-            android:id="@+id/add_child"
-            style="?android:attr/borderlessButtonStyle"
-            android:layout_width="@dimen/node_button_width"
-            android:layout_height="48dp"
-            android:contentDescription="@string/add_child"
-            android:src="@drawable/ic_subdirectory_arrow_right"
-            app:tint="@color/node_icon"
-            android:tooltipText="@string/add_child" />
-
-        <ImageButton
-            android:id="@+id/add_sibling"
-            style="?android:attr/borderlessButtonStyle"
-            android:layout_width="@dimen/node_button_width"
-            android:layout_height="48dp"
-            android:contentDescription="@string/add_sibling"
-            android:src="@drawable/ic_add_row_below"
-            app:tint="@color/node_icon"
-            android:tooltipText="@string/add_sibling" />
-    </LinearLayout>
-
         <!-- Apart, at the start: away from the frequent commands and from ⋮, so that a
              tap meant for another button does not delete a branch. -->
         <ImageButton
@@ -165,6 +125,47 @@ SPDX-License-Identifier: GPL-3.0-or-later
             android:src="@drawable/ic_delete"
             app:tint="@color/node_icon"
             android:tooltipText="@string/delete_node" />
+
+        <!-- Centered, with room kept at the start for Delete and at the end for ⋮, so that
+             it never overlaps them. -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginStart="@dimen/node_button_width"
+            android:layout_marginEnd="@dimen/node_button_width"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/edit_text"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="@dimen/node_button_width"
+                android:layout_height="48dp"
+                android:contentDescription="@string/edit_text"
+                android:src="@drawable/ic_edit"
+                app:tint="@color/node_icon"
+                android:tooltipText="@string/edit_text" />
+
+            <ImageButton
+                android:id="@+id/add_child"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="@dimen/node_button_width"
+                android:layout_height="48dp"
+                android:contentDescription="@string/add_child"
+                android:src="@drawable/ic_subdirectory_arrow_right"
+                app:tint="@color/node_icon"
+                android:tooltipText="@string/add_child" />
+
+            <ImageButton
+                android:id="@+id/add_sibling"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="@dimen/node_button_width"
+                android:layout_height="48dp"
+                android:contentDescription="@string/add_sibling"
+                android:src="@drawable/ic_add_row_below"
+                app:tint="@color/node_icon"
+                android:tooltipText="@string/add_sibling" />
+        </LinearLayout>
 
         <ImageButton
             android:id="@+id/more"

@@ -1143,16 +1143,15 @@ class MainActivity : AppCompatActivity() {
      * both as a missing file), so the user decides. The map is named as Map info names it:
      * at start, nothing else on screen tells which one it is.
      */
-    private fun offerToForget(uri: Uri) {
-        val entry = recent.entries.find { it.document == uri.toString() }
+    private fun offerToForget(entry: RecentMaps.Entry) {
         val which = listOfNotNull(
-            entry?.title?.let(::oneLine)?.takeIf { it.isNotEmpty() }?.let { getString(R.string.info_map, it) },
-            entry?.name?.takeIf { it.isNotEmpty() }?.let { getString(R.string.info_file, it) },
+            oneLine(entry.title).takeIf { it.isNotEmpty() }?.let { getString(R.string.info_map, it) },
+            entry.name.takeIf { it.isNotEmpty() }?.let { getString(R.string.info_file, it) },
         )
         val unreadable = getString(R.string.map_unreadable)
         MaterialAlertDialogBuilder(this)
             .setMessage(if (which.isEmpty()) unreadable else which.joinToString("\n") + "\n\n" + unreadable)
-            .setPositiveButton(R.string.remove_from_list) { _, _ -> forget(uri) }
+            .setPositiveButton(R.string.remove_from_list) { _, _ -> forget(entry.document.toUri()) }
             .setNegativeButton(R.string.keep, null)
             .show()
     }
@@ -1303,8 +1302,8 @@ class MainActivity : AppCompatActivity() {
                 Log.w(TAG, "Cannot read $uri", e)
                 runOnUiThread {
                     if (reopen == uri) stopReopening()
-                    if (recent.entries.any { it.document == uri.toString() }) offerToForget(uri)
-                    else alert(R.string.error_read)
+                    val entry = recent.entries.find { it.document == uri.toString() }
+                    if (entry != null) offerToForget(entry) else alert(R.string.error_read)
                 }
             }
         }
