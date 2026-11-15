@@ -220,6 +220,7 @@ export interface TouchMap extends GestureMap {
   view: GestureMap['view'] & {
     container: HTMLElement;
     e_panel: HTMLElement; // scrolls; holds the layers: the links' drawing and the nodes
+    e_nodes: HTMLElement; // the nodes' layer
     set_zoom(zoom: number, center?: Point): boolean;
     relayout(): void;
     get_view_offset(): Point;
@@ -262,6 +263,10 @@ export function installTouchGestures(jm: TouchMap): void {
       layer.style.transformOrigin = origin;
       layer.style.transform = transform;
     }
+    // A transformed layer is stacked as a whole: the nodes' layer would go behind the links
+    // (in front of the nodes, see mapling.css), the root's bubble with it. While pinching,
+    // it stays in front of them.
+    jm.view.e_nodes.style.zIndex = transform ? '7' : '';
   };
   const endPinch = () => {
     cancelAnimationFrame(frame);

@@ -28,11 +28,20 @@ interface JmNode {
 }
 
 /** jsMind's layout engine, the parts replaced by bottomAnchoredLayout (checked in its source). */
+interface Point {
+  x: number;
+  y: number;
+}
+
 interface JmLayout {
   opts: { hspace: number; vspace: number; pspace: number; cousin_space: number };
   set_visible(nodes: JmNode[], visible: boolean): void;
   is_visible(node: JmNode): boolean;
   layout(): void;
+  get_node_offset(node: JmNode): Point; // where its link joins it, in the map
+  get_node_point_in(node: JmNode): Point; // the same point
+  get_node_point_out(node: JmNode): Point; // where its children's links start
+
   _should_reserve_cousin_space(node: JmNode): boolean;
   _layout_offset_subnodes(nodes: JmNode[]): number;
   _layout_offset_subnodes_height(nodes: JmNode[]): number;
@@ -57,6 +66,12 @@ interface JsMindInstance extends TouchMap {
     opts: { hmargin: number; vmargin: number };
     expand_size(): void;
     relayout(): void;
+    clear_lines(): void;
+    show_lines(): void;
+    graph: {
+      lines: SVGPathElement[];
+      draw_line(from: Point, to: Point, offset: Point, color?: string): void;
+    };
     init_nodes_size(node: JmNode): void;
     zoom_in(): boolean;
     zoom_out(): boolean;
@@ -100,8 +115,6 @@ const PENDING_ID = '_pending';
 export class JsMindView implements View {
   private readonly jm: JsMindInstance;
   private bridge: Bridge | null = null;
-  /** Height of the node being edited, before its editor (null: root, or not editing). */
-  private editedHeight: number | null = null;
 
   constructor(container: HTMLElement | string) {
     this.jm = new jsMind({
@@ -138,6 +151,7 @@ export class JsMindView implements View {
     this.editOnDoubleTap();
     this.showSelectionOnArrows();
     bottomAnchoredLayout(this.jm.layout);
+    linksUnderNodes(this.jm);
     installTouchGestures(this.jm);
     this.jm.add_event_listener((type, event) => this.onJsMindEvent(type, event));
   }
@@ -410,8 +424,6 @@ export class JsMindView implements View {
     jm.begin_edit = (target: string | JmNode) => {
       const node = typeof target === 'string' ? jm.get_node(target) : target;
       if (!node || node.data.readOnly) return;
-      const element = node._data.view.element;
-      this.editedHeight = element && !node.isroot ? element.offsetHeight : null;
       beginEdit(node); // the node itself: given its id, jsMind would call this function again
       // jsMind empties the node for its editor: the icons go back in front of it.
       const link = node.data.link as string | undefined;
@@ -427,10 +439,15 @@ export class JsMindView implements View {
     const editNodeEnd = view.edit_node_end.bind(view);
     view.edit_node_end = () => {
       const node = view.editing_node;
-      if (node?._data.view.element) node._data.view.element.style.transform = ''; // back to the CSS
-      this.editedHeight = null;
-      editNodeEnd();
-      if (node && node.id === PENDING_ID) this.completeNewNode(node);
+      if (!node) return editNodeEnd(); // also the blur that removing the editor sets off
+      this.keepStill(node, () => {
+        editNodeEnd();
+        // A changed text is measured and laid out by jsMind; an unchanged one only drawn again.
+        // A new node left unchanged is removed next: jsMind then lays out, keeping its parent still.
+        const dropped = node.id === PENDING_ID && node.topic === PLACEHOLDER;
+        if (this.resized(node) && !dropped) this.layOut(node);
+      });
+      if (node.id === PENDING_ID) this.completeNewNode(node);
     };
     const selectClear = jm.select_clear.bind(jm);
     jm.select_clear = () => {
@@ -440,28 +457,58 @@ export class JsMindView implements View {
   }
 
   /**
-   * As the edited node grows or moves: kept on its link, and shown whole with its ↵ button
-   * (on a narrow screen, they may otherwise go past the edge). A node taller than the map
-   * shows the part asked for: its start, or its end, where the ↵ button and a caret at the
-   * end are; while typing (`caret`), the browser itself keeps the caret in sight.
+   * As the edited node grows or shrinks: laid out at its new size, and shown whole with its
+   * ↵ button (on a narrow screen, they may otherwise go past the edge). A node taller than
+   * the map shows the part asked for: its start, or its end, where the ↵ button and a caret
+   * at the end are; while typing (`caret`), the browser itself keeps the caret in sight.
    */
   private fitEditing(part: 'start' | 'end' | 'caret'): void {
-    this.keepOnItsLink();
-    const element = this.jm.view.editing_node?._data.view.element;
-    if (!element) return;
+    const node = this.jm.view.editing_node;
+    const element = node?._data.view.element;
+    if (!node || !element) return;
+    this.layOutEdited(node);
     const tooTall = element.offsetHeight + 2 * SHOW_MARGIN_PX > this.jm.view.e_panel.clientHeight;
     if (!tooTall || part !== 'caret') this.showWhole(element, part === 'end');
   }
 
   /**
-   * jsMind placed the node for its height before editing; the CSS lifts it by half its
-   * height so that its bottom meets its link. While the editor changes that height, the
-   * lift is set from both heights, so that the bottom stays on the link.
+   * jsMind lays a node out with the size it measured; while it is edited, its text changes
+   * that size. Measured again and laid out, the node takes its room in the map: its
+   * neighbours move aside instead of being covered. The point where its link joins it
+   * stays still on screen, and the text being typed with it.
    */
-  private keepOnItsLink(): void {
-    const element = this.jm.view.editing_node?._data.view.element;
-    if (!element || this.editedHeight === null) return;
-    element.style.transform = `translateY(${this.editedHeight / 2 - element.offsetHeight}px)`;
+  private layOutEdited(node: JmNode): void {
+    if (this.resized(node)) this.keepStill(node, () => this.layOut(node));
+  }
+
+  /** Whether the node's displayed size differs from the one jsMind laid it out with. */
+  private resized(node: JmNode): boolean {
+    const size = node._data.view;
+    const element = size.element;
+    return !!element && (element.clientWidth !== size.width || element.clientHeight !== size.height);
+  }
+
+  /** The node measured again, and the map laid out and drawn for that size. */
+  private layOut(node: JmNode): void {
+    const { layout, view } = this.jm;
+    view.init_nodes_size(node);
+    layout.layout();
+    view.relayout();
+  }
+
+  /** Runs `change`, then scrolls so that the point where the node's link joins it has not moved on screen. */
+  private keepStill(node: JmNode, change: () => void): void {
+    const { layout, view } = this.jm;
+    const joint = () => {
+      const inMap = layout.get_node_offset(node);
+      const map = view.get_view_offset();
+      return { x: inMap.x + map.x, y: inMap.y + map.y };
+    };
+    const before = joint();
+    change();
+    const after = joint();
+    view.e_panel.scrollLeft += (after.x - before.x) * view.zoom_current;
+    view.e_panel.scrollTop += (after.y - before.y) * view.zoom_current;
   }
 
   /**
@@ -644,6 +691,31 @@ function bottomAnchoredLayout(layout: JmLayout): void {
   layout._layout_offset_subnodes_height = (nodes) => place(nodes, false);
 }
 
+/**
+ * A node's underline is its link, drawn on under it: one SVG path from the node's far end,
+ * along its bottom, then jsMind's curve to its parent. Drawn apart, a CSS border never quite
+ * met the link: the browser rounds a border's width and place to whole pixels, not a
+ * drawing's. This is jsMind 0.9.1's show_lines and SVG draw_line (checked in its source),
+ * with that one segment more.
+ */
+function linksUnderNodes(jm: JsMindInstance): void {
+  const { view, layout } = jm;
+  view.show_lines = () => {
+    view.clear_lines();
+    const offset = view.get_view_offset();
+    for (const node of Object.values(jm.mind?.nodes ?? {})) {
+      if (node.isroot || !layout.is_visible(node)) continue;
+      const from = layout.get_node_point_out(node.parent as JmNode);
+      const to = layout.get_node_point_in(node);
+      view.graph.draw_line(from, to, offset, node.data['leading-line-color'] as string | undefined);
+      const [x, y, px, py] = [to.x + offset.x, to.y + offset.y, from.x + offset.x, from.y + offset.y];
+      const end = x + node._data.view.width * node._data.layout.direction;
+      const path = view.graph.lines[view.graph.lines.length - 1];
+      path.setAttribute('d', `M ${end} ${y} H ${x} C ${x + (2 * (px - x)) / 3} ${y}, ${x} ${py}, ${px} ${py}`);
+    }
+  };
+}
+
 interface Box {
   left: number;
   top: number;
@@ -666,10 +738,15 @@ export function scrollToShow(box: Box, area: Box, margin: number, toEnd = false)
   return { x: along(box.left, box.right, area.left, area.right), y: along(box.top, box.bottom, area.top, area.bottom) };
 }
 
-/** As tall as its text, on every WebView (field-sizing is recent: Chromium 123). */
+/**
+ * As tall as its lines, on every WebView (field-sizing is recent: Chromium 123). Some fonts
+ * overflow the line by a pixel: rounded to whole lines, the node keeps the height it is
+ * shown with, and the map is not laid out again for that pixel.
+ */
 function fitHeight(editor: HTMLTextAreaElement): void {
   editor.style.height = 'auto';
-  editor.style.height = `${editor.scrollHeight}px`;
+  const line = parseFloat(getComputedStyle(editor).lineHeight);
+  editor.style.height = `${Math.max(1, Math.round(editor.scrollHeight / line)) * line}px`;
 }
 
 function side(node: JmNode): Side {
