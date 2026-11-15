@@ -146,6 +146,13 @@ class MainActivity : AppCompatActivity() {
     private var reopen: Uri? = null
 
     /**
+     * The map shown when Android recreated the activity while the app kept running (a change
+     * of language, for instance): its draft comes back without a question, since the user
+     * never left it. After the process died, the question stays (see shownWhenSaved).
+     */
+    private var restoreWithoutAsking: Uri? = null
+
+    /**
      * Documents lent by another app ("Open with", by their URI): for this session only, so
      * neither listed in the recent maps nor reopened at start. The value: whether writing
      * was lent too; if not, the map is read-only and can be saved as a copy.
@@ -225,6 +232,7 @@ class MainActivity : AppCompatActivity() {
             ?.toUri()
         val viewed = lentDocument(intent) // also when Android recreates the activity: still lent
         if (savedInstanceState == null && viewed != null) reopen = viewed
+        if (savedInstanceState != null && reopen?.toString() == shownWhenSaved) restoreWithoutAsking = reopen
         render() // the home screen stays hidden from the start while a map is to be reopened
 
         webView.settings.apply {
@@ -306,6 +314,8 @@ class MainActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         (document ?: reopen)?.let { outState.putString(STATE_DOCUMENT, it.toString()) }
+        // Not a map waiting for its draft question: the answer is the user's, even after a recreation.
+        shownWhenSaved = (document ?: restoreWithoutAsking)?.toString()
     }
 
     override fun onDestroy() {
@@ -1291,14 +1301,22 @@ class MainActivity : AppCompatActivity() {
                 val found = drafts.read(uri.toString())
                 Log.i(TAG, "Opened $name: ${bytes.size} bytes, ${if (fileless) "no file" else describe(uri)}, draft: ${found.javaClass.simpleName}, $uri")
                 runOnUiThread {
+                    val shownBefore = uri == restoreWithoutAsking
+                    restoreWithoutAsking = null // once, for the map shown before the recreation
                     when (found) {
-                        is Found.Present -> offerDraft(uri, name, bytes, base, modified, found.draft)
+                        // Unless the file changed meanwhile: then the user is told, and chooses.
+                        is Found.Present -> if (shownBefore && found.draft.base == base) {
+                            load(uri, name, found.draft.bytes, found.draft.base, modified, restoredDraft = true)
+                        } else {
+                            offerDraft(uri, name, bytes, base, modified, found.draft)
+                        }
                         is Found.Unreadable -> {
                             toast(getString(R.string.draft_unreadable))
                             load(uri, name, bytes, base, modified)
                         }
-                        // A new map left unmodified, or given up, has nothing to restore: the home screen instead.
-                        Found.None -> if (fileless && reopen == uri) stopReopening() else load(uri, name, bytes, base, modified)
+                        // A new map left unmodified, or given up, has nothing to restore: the home screen
+                        // instead; unless only the screen was recreated, the map still in front of the user.
+                        Found.None -> if (fileless && reopen == uri && !shownBefore) stopReopening() else load(uri, name, bytes, base, modified)
                     }
                 }
             } catch (e: Exception) {
@@ -1925,6 +1943,13 @@ class MainActivity : AppCompatActivity() {
         val writeCheck = WriteCheck()
 
         private var drafts: DraftStore? = null
+
+        /**
+         * The map the activity showed when it last saved its state, for this process only:
+         * a new activity that finds the same map in its saved state was recreated while the
+         * app kept running; after the process died, this is null again.
+         */
+        var shownWhenSaved: String? = null
 
         @Synchronized
         fun draftStore(context: Context): DraftStore =
