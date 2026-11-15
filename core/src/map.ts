@@ -459,7 +459,7 @@ export class MindMap {
 
   private isReadOnlyElement(el: Element): boolean {
     const text = el.getAttribute('TEXT') ?? (el.hasAttribute('LOCALIZED_TEXT') ? '' : null);
-    return text === null || text.includes('\n') || !!this.richContent(el);
+    return text === null || !!this.richContent(el);
   }
 
   private side(el: Element): Side {

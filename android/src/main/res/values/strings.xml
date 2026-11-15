@@ -82,7 +82,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     <string name="kind_icon">icons</string>
     <string name="kind_connector">connectors</string>
     <string name="kind_image">images</string>
-    <string name="hint_locked">Text not editable here (rich or multi-line text): edit it in Freeplane. The node can still be moved or deleted.</string>
+    <string name="hint_locked">Text not editable here (rich text): edit it in Freeplane. The node can still be moved or deleted.</string>
     <!-- %1$s: what the node holds, e.g. "1 note and 2 icons" -->
     <string name="hint_hidden">This node holds items that are not shown here, and kept: %1$s.</string>
     <string name="dismiss">Dismiss</string>

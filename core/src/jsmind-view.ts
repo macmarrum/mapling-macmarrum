@@ -303,11 +303,16 @@ export class JsMindView implements View {
     panel.addEventListener('keydown', (event) => {
       if (!event.key.startsWith('Arrow') || event.ctrlKey || event.altKey || event.metaKey || this.editing()) return;
       const element = this.jm.get_selected_node()?._data.view.element;
-      if (!element) return;
-      const shift = scrollToShow(element.getBoundingClientRect(), panel.getBoundingClientRect(), SHOW_MARGIN_PX);
-      panel.scrollLeft += shift.x;
-      panel.scrollTop += shift.y;
+      if (element) this.showWhole(element);
     });
+  }
+
+  /** Scrolls the map just enough to show `element` whole, with a small margin; its end, if too large and `toEnd`. */
+  private showWhole(element: HTMLElement, toEnd = false): void {
+    const panel = this.jm.view.e_panel;
+    const shift = scrollToShow(element.getBoundingClientRect(), panel.getBoundingClientRect(), SHOW_MARGIN_PX, toEnd);
+    panel.scrollLeft += shift.x;
+    panel.scrollTop += shift.y;
   }
 
   /**
@@ -400,7 +405,7 @@ export class JsMindView implements View {
   private guardEditing(): void {
     const jm = this.jm;
     const view = jm.view;
-    const editor = this.textEditor(() => this.keepOnItsLink());
+    const editor = this.textEditor(() => this.fitEditing('caret'));
     const beginEdit = jm.begin_edit.bind(jm);
     jm.begin_edit = (target: string | JmNode) => {
       const node = typeof target === 'string' ? jm.get_node(target) : target;
@@ -411,10 +416,13 @@ export class JsMindView implements View {
       // jsMind empties the node for its editor: the icons go back in front of it.
       const link = node.data.link as string | undefined;
       if (link && editor.parentElement) editor.before(this.icons(link));
+      if (editor.parentElement) editor.after(this.newlineButton(editor));
+      // A text on several lines: the caret at its end, so that a first key replaces nothing.
+      if (editor.value.includes('\n')) editor.setSelectionRange(editor.value.length, editor.value.length);
       // jsMind sizes the editor to the node (a new node's "…" is tiny): let the CSS size it.
       editor.style.width = '';
       fitHeight(editor);
-      this.keepOnItsLink();
+      this.fitEditing(editor.selectionStart === editor.value.length ? 'end' : 'start');
     };
     const editNodeEnd = view.edit_node_end.bind(view);
     view.edit_node_end = () => {
@@ -432,6 +440,20 @@ export class JsMindView implements View {
   }
 
   /**
+   * As the edited node grows or moves: kept on its link, and shown whole with its ↵ button
+   * (on a narrow screen, they may otherwise go past the edge). A node taller than the map
+   * shows the part asked for: its start, or its end, where the ↵ button and a caret at the
+   * end are; while typing (`caret`), the browser itself keeps the caret in sight.
+   */
+  private fitEditing(part: 'start' | 'end' | 'caret'): void {
+    this.keepOnItsLink();
+    const element = this.jm.view.editing_node?._data.view.element;
+    if (!element) return;
+    const tooTall = element.offsetHeight + 2 * SHOW_MARGIN_PX > this.jm.view.e_panel.clientHeight;
+    if (!tooTall || part !== 'caret') this.showWhole(element, part === 'end');
+  }
+
+  /**
    * jsMind placed the node for its height before editing; the CSS lifts it by half its
    * height so that its bottom meets its link. While the editor changes that height, the
    * lift is set from both heights, so that the bottom stays on the link.
@@ -444,35 +466,75 @@ export class JsMindView implements View {
 
   /**
    * A text area instead of jsMind's one-line field, which jsMind only fills, places, selects
-   * and reads (checked in its source): a long text wraps while it is edited, as in the node
-   * and in Freeplane. The text stays on one line: Enter validates, and line breaks pasted
-   * become spaces (a text on several lines could no longer be edited here).
+   * and reads (checked in its source): a long text wraps while it is edited, as in the node.
+   * As in Freeplane, Enter validates and Shift+Enter starts a new line, written `&#xa;` in
+   * the file. A virtual keyboard shows ✓ for Enter; the ↵ button starts a new line.
    */
   private textEditor(fitted: () => void): HTMLTextAreaElement {
     const view = this.jm.view;
     const editor = document.createElement('textarea');
     editor.className = 'jsmind-editor';
     editor.rows = 1;
+    editor.enterKeyHint = 'done';
+    // Shift+Enter seen in keydown: the line break that follows is wanted (beforeinput does
+    // not tell whether Shift is down).
+    let newLine = false;
     // `key`, not only the legacy keyCode 13 jsMind checks: virtual keyboards (Android) and
     // synthetic events may leave it at 0 or 229.
     // Escape cancels, as in Freeplane: the editor gets the node's text back, and jsMind
     // changes nothing for an unchanged text (a new node's placeholder: no node is added).
     editor.addEventListener('keydown', (event) => {
       const escape = event.key === 'Escape';
-      if (!escape && event.key !== 'Enter' && event.keyCode !== 13) return;
-      event.preventDefault(); // no line break
+      const enter = event.key === 'Enter' || event.keyCode === 13;
+      newLine = enter && event.shiftKey;
+      if ((!escape && !enter) || newLine) return; // a new line: the text area inserts it
+      event.preventDefault();
       event.stopPropagation();
       if (escape && view.editing_node) editor.value = view.editing_node.topic;
       view.edit_node_end();
     });
+    // A virtual keyboard that sends no Enter key, only the line break: it validates too.
+    editor.addEventListener('beforeinput', (event) => {
+      if (event.inputType !== 'insertLineBreak' || newLine) return;
+      event.preventDefault();
+      view.edit_node_end();
+    });
     editor.addEventListener('input', () => {
-      if (/[\r\n]/.test(editor.value)) editor.value = editor.value.replace(/\r\n|\r|\n/g, ' ');
+      newLine = false;
+      // Line breaks pasted from elsewhere: written as Freeplane does, `\n` only.
+      if (/\r/.test(editor.value)) editor.value = editor.value.replace(/\r\n|\r/g, '\n');
       fitHeight(editor);
       fitted();
     });
     editor.addEventListener('blur', () => view.edit_node_end());
     view.e_editor = editor;
     return editor;
+  }
+
+  /**
+   * Beside the editor, a button that starts a new line, for a finger (the keyboard's ✓
+   * validates). It never takes the focus, so the keyboard stays open. Drawn by the
+   * stylesheet, with no text: screen readers skip it; Shift+Enter does the same.
+   */
+  private newlineButton(editor: HTMLTextAreaElement): HTMLElement {
+    const button = document.createElement('span');
+    button.className = 'mapling-newline-button';
+    button.setAttribute('aria-hidden', 'true');
+    // Before it can move the focus, or start a gesture on the node (touch.ts); the click
+    // synthesized after a touch would come too late, and is prevented with the touch.
+    const keep = (event: Event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    for (const type of ['mousedown', 'touchstart', 'click', 'dblclick']) button.addEventListener(type, keep);
+    button.addEventListener('pointerdown', (event) => {
+      keep(event);
+      // After the selection, not in its place: a text just opened is all selected.
+      editor.setRangeText('\n', editor.selectionEnd, editor.selectionEnd, 'end');
+      fitHeight(editor);
+      this.fitEditing('end'); // the button is at the node's end: so is the finger
+    });
+    return button;
   }
 
   // ---------- adding a node: created in the map only once its text is validated ----------
@@ -592,13 +654,14 @@ interface Box {
 /**
  * How far to scroll so that `box` is wholly inside `area`, with `margin` around it: not at
  * all when it already is, else just enough. A box too large for the area shows its start
- * (left, top), where its text begins.
+ * (left, top), where its text begins; or its end (right, bottom), when `toEnd`.
  */
-export function scrollToShow(box: Box, area: Box, margin: number): { x: number; y: number } {
+export function scrollToShow(box: Box, area: Box, margin: number, toEnd = false): { x: number; y: number } {
   const along = (start: number, end: number, areaStart: number, areaEnd: number): number => {
     const back = start - margin - areaStart; // negative when the box begins before the area
-    if (back < 0) return back;
-    return Math.min(Math.max(end + margin - areaEnd, 0), back);
+    const forth = end + margin - areaEnd; // positive when it ends after the area
+    if (toEnd) return forth > 0 ? forth : Math.max(Math.min(back, 0), forth);
+    return back < 0 ? back : Math.min(Math.max(forth, 0), back);
   };
   return { x: along(box.left, box.right, area.left, area.right), y: along(box.top, box.bottom, area.top, area.bottom) };
 }

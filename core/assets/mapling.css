@@ -10,7 +10,13 @@
   --mapling-dot-color: #4a7fd4;
   /* An arrow out of a box: "opens elsewhere" (drawn for Mapling). */
   --mapling-link: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23154d46' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 2.5H3.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9'/%3E%3Cpath d='M9.5 2.5h4v4M13.5 2.5 7 9'/%3E%3C/svg%3E");
+  /* A return arrow: "start a new line" (drawn for Mapling). */
+  --mapling-newline: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23154d46' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13 3v5a2 2 0 0 1-2 2H3'/%3E%3Cpath d='M6 7 3 10l3 3'/%3E%3C/svg%3E");
 }
+
+/* The editor's widest: 20em, less on a narrow screen, so that it fits with its ↵ button (40 px and
+   4 px apart), the node's padding (12 px) and a margin of 16 px on each side: 88 px in all. */
+:root { --mapling-editor-width: min(20em, calc(100vw - 88px)); }
 
 #mapling { width: 100%; height: 100%; }
 
@@ -59,7 +65,7 @@ jmnode.selected, jmnode.selected:hover { background-color: #d9ebe6; color: #1035
    its height follows the text (fitHeight). The node grows with it meanwhile. */
 .jsmind-editor {
   min-width: 15ch;
-  max-width: 20em;
+  max-width: var(--mapling-editor-width);
   field-sizing: content;
   resize: none;
   overflow: hidden;
@@ -68,11 +74,11 @@ jmnode.selected, jmnode.selected:hover { background-color: #d9ebe6; color: #1035
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-@supports not (field-sizing: content) { .jsmind-editor { width: 20em; } }
+@supports not (field-sizing: content) { .jsmind-editor { width: var(--mapling-editor-width); } }
 jmnode:has(> .jsmind-editor) { max-width: none; }
 
-/* While a text is edited: one line only, the node's own underline; no frame, no focus
-   ring, and a selection in the shells' green. */
+/* While a text is edited: the node's own underline; no frame, no focus ring, and a
+   selection in the shells' green. */
 jmnode:has(> .jsmind-editor), jmnode.selected:has(> .jsmind-editor) { background-color: #fff; }
 .jsmind-editor {
   font: inherit;
@@ -86,7 +92,22 @@ jmnode:has(> .jsmind-editor), jmnode.selected:has(> .jsmind-editor) { background
 }
 .jsmind-editor::selection { background: #b5d8cf; }
 
-/* Text cannot be edited (rich or multi-line text): greyed, with a small lock. */
+/* Beside the editor, at its bottom: the button that starts a new line (JsMindView.newlineButton),
+   wide enough for a finger. */
+jmnode:has(> .jsmind-editor) { display: flex; }
+jmnode > .jsmind-editor { align-self: flex-end; } /* the text stays on the node's underline */
+.mapling-newline-button {
+  flex: none;
+  align-self: flex-end;
+  width: 40px;
+  height: 40px;
+  margin-left: 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #d9ebe6 no-repeat center / 24px var(--mapling-newline);
+}
+
+/* Text cannot be edited (rich text): greyed, with a small lock. */
 jmnode.mapling-locked { color: #666; }
 jmnode.mapling-locked::after,
 .mapling-lock-mark {

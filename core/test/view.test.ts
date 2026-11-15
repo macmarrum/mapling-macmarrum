@@ -26,3 +26,11 @@ test('a node larger than the map shows its start, where its text begins', () => 
   assert.deepEqual(scrollToShow(box(-100, 200, 600, 25), area, 16), { x: -116, y: 0 }, 'too wide, starting before');
   assert.deepEqual(scrollToShow(box(100, 150, 100, 500), area, 16), { x: 0, y: 34 }, 'too tall');
 });
+
+test('a node larger than the map shows its end when asked: an editor whose caret is at the end', () => {
+  assert.deepEqual(scrollToShow(box(100, 150, 100, 500), area, 16, true), { x: 0, y: 166 }, 'too tall');
+  assert.deepEqual(scrollToShow(box(100, -300, 100, 500), area, 16, true), { x: 0, y: -284 }, 'too tall, ending before');
+  assert.deepEqual(scrollToShow(box(100, 200, 150, 30), area, 16, true), { x: 0, y: 0 }, 'shown whole: nothing moves');
+  assert.deepEqual(scrollToShow(box(300, 200, 270, 25), area, 16, true), scrollToShow(box(300, 200, 270, 25), area, 16),
+    'a node that fits is shown whole either way');
+});

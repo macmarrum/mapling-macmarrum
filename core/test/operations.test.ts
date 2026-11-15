@@ -58,11 +58,19 @@ test('updateText with the same text changes nothing', () => {
   assert.equal(map.serialize(), original);
 });
 
-test('updateText refuses rich-text and multi-line nodes', () => {
+test('updateText refuses rich-text nodes', () => {
   const map = new MindMap(original);
   assert.throws(() => map.updateText(B_RICH_CHILD, 'x'), (e) => code(e) === 'READ_ONLY_NODE');
-  assert.throws(() => map.updateText(E_MULTILINE_CHILD, 'x'), (e) => code(e) === 'READ_ONLY_NODE');
   assert.equal(map.serialize(), original);
+});
+
+test('updateText edits a text on several lines, its line breaks written as Freeplane writes them', () => {
+  const map = new MindMap(original);
+  assert.equal(map.isReadOnly(E_MULTILINE_CHILD), false);
+  assert.equal(map.updateText(E_MULTILINE_CHILD, 'line one\nline two', NOW), true);
+  const expected = replaceOnce(original, LONG_ATTRS,
+    LONG_ATTRS.replace(/TEXT="[^"]*"/, 'TEXT="line one&#xa;line two"').replace(/MODIFIED="\d+"/, `MODIFIED="${NOW}"`));
+  assert.equal(map.serialize(), expected);
 });
 
 test('addNode under a leaf opens the element and puts the child on its own line', () => {
