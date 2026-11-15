@@ -169,6 +169,18 @@ export class JsMindView implements View {
     return this.jm.view.editing_node !== null;
   }
 
+  /**
+   * A line break at the cursor of the text being typed, as Shift+Enter gives: for the shell's
+   * button, which cannot press Shift on a virtual keyboard. The editor keeps the focus, so the
+   * typing goes on; `input` lets the editor resize and the node follow, as typing does.
+   */
+  insertLineBreak(): void {
+    if (!this.editing()) return;
+    const editor = this.jm.view.e_editor as HTMLTextAreaElement;
+    editor.setRangeText('\n', editor.selectionStart, editor.selectionEnd, 'end');
+    editor.dispatchEvent(new Event('input'));
+  }
+
   setReadOnly(readOnly: boolean): void {
     if (readOnly) this.jm.disable_edit();
     else this.jm.enable_edit();
@@ -408,6 +420,7 @@ export class JsMindView implements View {
       const element = node._data.view.element;
       this.editedHeight = element && !node.isroot ? element.offsetHeight : null;
       beginEdit(node); // the node itself: given its id, jsMind would call this function again
+      this.bridge?.editingChanged();
       // jsMind empties the node for its editor: the icons go back in front of it.
       const link = node.data.link as string | undefined;
       if (link && editor.parentElement) editor.before(this.icons(link));
@@ -423,6 +436,7 @@ export class JsMindView implements View {
       this.editedHeight = null;
       editNodeEnd();
       if (node && node.id === PENDING_ID) this.completeNewNode(node);
+      this.bridge?.editingChanged();
     };
     const selectClear = jm.select_clear.bind(jm);
     jm.select_clear = () => {

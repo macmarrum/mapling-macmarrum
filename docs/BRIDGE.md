@@ -170,6 +170,14 @@ Editing commands from the native menu. Each names its target node, `id`, taken f
 - `deleteNode` removes the node and its whole branch, without asking: **the shell asks for confirmation first** when `selectionChanged` reports hidden content in the branch, with a summary such as "Delete this node, 3 sub-nodes, 1 note and 2 icons?". Deleting can be undone.
 - `deleteNode` also sends back the `revision` of the `selectionChanged` the decision was based on. If the map changed since (an undo may have put a note back into the branch, for instance), the deletion is refused with `OUTDATED_COMMAND`: the shell then uses the latest `selectionChanged` and asks again if needed. The check is deliberately strict: any change invalidates it.
 
+### `insertLineBreak`
+
+```json
+{ "v": 1, "type": "insertLineBreak" }
+```
+
+Puts a line break at the cursor of the text being typed, as Shift+Enter does. For shells whose keyboard has no Shift+Enter (a virtual keyboard, a native button): Enter still validates the edit. Ignored when no text is being typed, and on a read-only map. The shell offers it while `editingChanged` says that a text is being typed, and the edit goes on: the typing keeps its focus.
+
 ## 5. Core → shell messages
 
 ### `ready` — core loaded, ready to receive
@@ -269,6 +277,14 @@ Sent whenever what the shell knows about the selected node changes: another node
 | `hidden` | Content of the node itself that is not displayed, by kind: what its dot stands for. Explain it while the node is selected (e.g. "1 note, 2 icons, kept") |
 | `branch.descendants` | Number of nodes under the selected one, removed with it |
 | `branch.hidden` | Content of the branch that is not displayed, by kind (same kinds as `hiddenContent`), including connectors from elsewhere pointing into the branch. Ask for confirmation before `deleteNode` when it is not empty |
+
+### `editingChanged`
+
+```json
+{ "v": 1, "type": "editingChanged", "editing": true }
+```
+
+Sent when a node's text starts being typed (`true`) or stops (`false`): the shell enables what only applies while typing, such as the line-break button (`insertLineBreak`). Sent only when the state changes.
 
 ### `historyChanged`
 
@@ -373,6 +389,7 @@ A mobile system may kill a backgrounded app without notice, and a phone may cras
 - [ ] Display `loaded` warnings from their `code`, translated; when `readOnly` is true, hide or disable editing and saving.
 - [ ] Tell the user once, when a map opens, about its `hiddenContent` (kept but not displayed).
 - [ ] Enable the Undo and Redo commands according to `historyChanged`, and the editing commands according to `selectionChanged`.
+- [ ] Offer the line-break button (`insertLineBreak`) only while `editingChanged` says a text is being typed, and keep the focus on the typing when it is tapped (on Android: the button is not focusable).
 - [ ] While a node with a lock or a dot is selected, explain what the mark means (`textEditable`, `hidden`), without taking room otherwise. The core's stylesheet offers the same marks for that (`.mapling-lock-mark`, `.mapling-dot-mark`).
 - [ ] Ask for confirmation before `deleteNode` when the selected branch holds hidden content, with a translated summary; send the node's `id` and the `revision` the confirmation was based on, and ask again on `OUTDATED_COMMAND`.
 - [ ] Serve the core's resources locally; no network access.

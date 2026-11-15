@@ -6,6 +6,7 @@
   "action.editText": "Edit text",
   "action.addChild": "Add child",
   "action.addSibling": "Add sibling",
+  "action.newLine": "New line",
   "action.deleteNode": "Delete",
   "readOnly.FORMAT_TOO_OLD": "Read-only: this map was written by FreeMind or an older Freeplane. Open it with Freeplane 1.12 or later and save it to edit it here.",
   "readOnly.FORMAT_TOO_NEW": "Read-only: this map was written by a Freeplane version newer than Mapling supports. Check for a Mapling update.",

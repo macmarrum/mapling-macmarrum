@@ -112,6 +112,8 @@ class MainActivity : AppCompatActivity() {
     private var canUndo = false
     private var canRedo = false
     private var selection: JSONObject? = null
+    /** Whether a node's text is being typed (docs/BRIDGE.md, section 5): the line-break button needs it. */
+    private var editing = false
 
     /**
      * Leaving the map once a given save has been written (Save in leaveMap): tied to that
@@ -593,6 +595,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<ImageButton>(R.id.add_child).setOnClickListener { nodeCommand("addChild") }
         findViewById<ImageButton>(R.id.add_sibling).setOnClickListener { nodeCommand("addSibling") }
         findViewById<ImageButton>(R.id.delete_node).setOnClickListener { deleteSelected() }
+        findViewById<ImageButton>(R.id.new_line).setOnClickListener { sendToCore(JSONObject().put("type", "insertLineBreak")) }
         findViewById<ImageButton>(R.id.more).setOnClickListener { showMore() }
     }
 
@@ -898,6 +901,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.add_child).isEnabled = node != null
         findViewById<View>(R.id.add_sibling).isEnabled = !root
         findViewById<View>(R.id.delete_node).isEnabled = !root
+        findViewById<View>(R.id.new_line).isEnabled = open && editing
         renderMessages()
         renderHints()
         backWhileModified.isEnabled = dirty && document != null
@@ -1486,6 +1490,7 @@ class MainActivity : AppCompatActivity() {
         documentName = ""
         documentTitle = ""
         selection = null
+        editing = false
         readOnlyReasons = listOf()
         hiddenNotice = null
         render()
@@ -1755,6 +1760,10 @@ class MainActivity : AppCompatActivity() {
             }
             "selectionChanged" -> {
                 selection = message.optJSONObject("node")
+                render()
+            }
+            "editingChanged" -> {
+                editing = message.getBoolean("editing")
                 render()
             }
             "error" -> {

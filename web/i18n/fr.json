@@ -5,6 +5,7 @@
   "action.redo": "Rétablir",
   "action.editText": "Modifier le texte",
   "action.addChild": "Ajouter un enfant",
+  "action.newLine": "Nouvelle ligne",
   "action.addSibling": "Ajouter un frère",
   "action.deleteNode": "Supprimer",
   "readOnly.FORMAT_TOO_OLD": "Lecture seule : cette carte a été écrite par FreeMind ou un Freeplane plus ancien. Ouvrez-la avec Freeplane 1.12 ou plus récent et enregistrez-la pour la modifier ici.",

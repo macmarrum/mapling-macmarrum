@@ -28,6 +28,7 @@ function setup() {
     command: (name, key) => view.commands.push(`${name} ${key}`),
     center: (key) => view.commands.push(`center ${key}`),
     editing: () => view.editing,
+    insertLineBreak: () => view.commands.push('insertLineBreak'),
   });
   const send = (message: object) => bridge.receive(JSON.stringify({ v: 1, ...message }));
   /** Sends `save` and returns the saveId of the resulting saveData. */
@@ -377,6 +378,28 @@ test('the language given with load is used for texts Freeplane provides', () => 
   assert.equal(take()[0].node.textEditable, true);
   send({ type: 'load', requestId: 'r2', name: 'new.mm', data: base64(fixture('fixture05-newMapRoot.mm')) });
   assert.equal(view.shown[1].topic, 'New Mindmap', 'English when no language is given');
+});
+
+test('a line break goes to the view while a text is typed, never on a read-only map', () => {
+  const { send, view } = loaded();
+  send({ type: 'insertLineBreak' });
+  assert.deepEqual(view.commands, ['insertLineBreak']);
+  send({ type: 'setReadOnly', readOnly: true });
+  send({ type: 'insertLineBreak' });
+  assert.deepEqual(view.commands, ['insertLineBreak']);
+});
+
+test('editingChanged tells the shell when a text starts or stops being typed, and only then', () => {
+  const { bridge, take, view } = loaded();
+  bridge.editingChanged(); // nothing typed: nothing to tell
+  assert.deepEqual(take(), []);
+  view.editing = true;
+  bridge.editingChanged();
+  bridge.editingChanged(); // the same state again: not reported again
+  assert.deepEqual(take(), [{ v: 1, type: 'editingChanged', editing: true }]);
+  view.editing = false;
+  bridge.editingChanged();
+  assert.deepEqual(take(), [{ v: 1, type: 'editingChanged', editing: false }]);
 });
 
 test('center goes to the view with the selected node, or the root, even when read-only', () => {

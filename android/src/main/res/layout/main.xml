@@ -161,6 +161,19 @@ SPDX-License-Identifier: GPL-3.0-or-later
             android:src="@drawable/ic_delete"
             app:tint="@color/node_icon"
             android:tooltipText="@string/delete_node" />
+
+        <!-- Enabled only while a text is typed: a line break at the cursor (Shift+Enter on a keyboard). -->
+        <ImageButton
+            android:id="@+id/new_line"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="@dimen/node_button_width"
+            android:layout_height="48dp"
+            android:contentDescription="@string/new_line"
+            android:focusable="false"
+            android:focusableInTouchMode="false"
+            android:src="@drawable/ic_keyboard_return"
+            app:tint="@color/node_icon"
+            android:tooltipText="@string/new_line" />
     </LinearLayout>
 
         <ImageButton

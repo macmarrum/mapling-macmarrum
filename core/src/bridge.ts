@@ -70,6 +70,7 @@ export type ShellMessage = { v: number; requestId?: string } & (
   | { type: 'moveNode'; id: string; direction: Direction }
   | { type: 'zoomIn' }
   | { type: 'zoomOut' }
+  | { type: 'insertLineBreak' }
   | { type: Command; id: string; revision?: number }
 );
 
@@ -93,6 +94,7 @@ export type CoreMessage =
   | { type: 'draftData'; revision: number; data: string | null }
   | { type: 'historyChanged'; canUndo: boolean; canRedo: boolean }
   | { type: 'selectionChanged'; node: SelectedNode | null }
+  | { type: 'editingChanged'; editing: boolean }
   | { type: 'openLink'; url: string }
   | { type: 'error'; requestId?: string; code: BridgeErrorCode; message: string };
 
@@ -113,6 +115,8 @@ export interface View {
   zoom(direction: 'in' | 'out'): void;
   /** Whether a text is being typed, not validated yet: the map does not hold it. */
   editing(): boolean;
+  /** Puts a line break at the cursor of the text being typed, as Shift+Enter does (none when not typing). */
+  insertLineBreak(): void;
 }
 
 class BridgeError extends Error {
@@ -143,6 +147,7 @@ export class Bridge {
   /** Key of the node selected in the view, and what was last reported about it. */
   private selectedKey: string | null = null;
   private reportedSelection = 'null'; // as JSON, to compare with the next report
+  private reportedEditing = false;
 
   constructor(send: (json: string) => void, view: View) {
     this.send = send;
@@ -242,6 +247,10 @@ export class Bridge {
       case 'zoomOut':
         // Not an edit: also available on a read-only map.
         if (this.session) this.view.zoom(message.type === 'zoomIn' ? 'in' : 'out');
+        return;
+      case 'insertLineBreak':
+        // Typing only: a read-only map has no text being typed.
+        if (this.session && !this.readOnly) this.view.insertLineBreak();
         return;
       case 'editText':
       case 'addChild':
@@ -403,6 +412,14 @@ export class Bridge {
     }
     this.updateDraft();
     this.reportSelection();
+  }
+
+  /** Sends editingChanged when a text starts or stops being typed (the view calls it). */
+  editingChanged(): void {
+    const editing = this.view.editing();
+    if (editing === this.reportedEditing) return;
+    this.reportedEditing = editing;
+    this.post({ type: 'editingChanged', editing });
   }
 
   /** Sends selectionChanged when what the shell knows about the selection changes. */

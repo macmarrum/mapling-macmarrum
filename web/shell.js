@@ -371,6 +371,7 @@ const actions = {
   addChild: () => send({ type: 'addChild', id: state.selection.id }),
   addSibling: () => send({ type: 'addSibling', id: state.selection.id }),
   deleteNode,
+  newLine: insertNewLine,
   more: () => more.showModal(),
   center: () => send({ type: 'center' }),
   zoomIn: () => send({ type: 'zoomIn' }),
@@ -400,6 +401,26 @@ async function deleteNode() {
     if (answer !== 'delete') return;
   }
   request({ type: 'deleteNode', id, revision });
+}
+
+/**
+ * Whether a node's text is being edited: the editor (a textarea of the core, with the class
+ * jsmind-editor) has the focus. The node bar's new-line button needs it.
+ */
+function isEditing() {
+  return document.activeElement?.classList.contains('jsmind-editor') ?? false;
+}
+
+/**
+ * Enter validates the edit on the keyboard, and a phone's on-screen keyboard has no Shift+Enter:
+ * this button puts a line break at the cursor, as Shift+Enter does. It only changes the text:
+ * the editor keeps the focus (see the mousedown handler below), so the edit goes on.
+ */
+function insertNewLine() {
+  const editor = document.activeElement;
+  if (!editor?.classList.contains('jsmind-editor')) return;
+  editor.setRangeText('\n', editor.selectionStart, editor.selectionEnd, 'end');
+  editor.dispatchEvent(new Event('input')); // the core resizes the editor and the node
 }
 
 /** Whether each command can be used now. */
@@ -437,12 +458,17 @@ function enabled(action) {
     case 'deleteNode':
     case 'moveNode':
       return editable && !!node && !node.root;
+    case 'newLine':
+      return isEditing();
   }
 }
 
 function run(action, argument) {
   if (enabled(action)) actions[action](argument);
 }
+
+// A tap on the new-line button must not take the focus from the editor: the blur would end the edit.
+document.querySelector('[data-action="newLine"]').addEventListener('mousedown', (event) => event.preventDefault());
 
 for (const button of document.querySelectorAll('[data-action]')) {
   button.addEventListener('click', () => {
@@ -486,6 +512,14 @@ document.addEventListener('keydown', (event) => {
   event.preventDefault();
   run(action, arrow);
 }, true);
+
+// The editor takes and loses the focus as an edit begins and ends (the focus goes to the map's
+// panel when Enter or Escape ends it, and the editor's removal fires no blur): so the button follows.
+function updateNewLineButton() {
+  document.querySelector('[data-action="newLine"]').disabled = !isEditing();
+}
+document.addEventListener('focusin', updateNewLineButton);
+document.addEventListener('focusout', updateNewLineButton);
 
 // ---------- display ----------
 

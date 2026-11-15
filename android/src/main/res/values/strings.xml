@@ -24,6 +24,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     <string name="edit_text">Edit text</string>
     <string name="add_child">Add child</string>
     <string name="add_sibling">Add sibling</string>
+    <string name="new_line">New line</string>
     <string name="delete_node">Delete</string>
     <string name="center">Center</string>
     <string name="menu">Menu</string>

@@ -22,6 +22,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     <string name="edit_text">Modifier le texte</string>
     <string name="add_child">Ajouter un enfant</string>
     <string name="add_sibling">Ajouter un frère</string>
+    <string name="new_line">Nouvelle ligne</string>
     <string name="delete_node">Supprimer</string>
     <string name="center">Recentrer</string>
     <string name="menu">Menu</string>
