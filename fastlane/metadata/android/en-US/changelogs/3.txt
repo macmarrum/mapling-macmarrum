@@ -1,0 +1,1 @@
+Texts on several lines can now be edited: the return button beside the text, or Shift+Enter, starts a new line, and the map makes room as the text grows. A new Preferences page lets you choose the interface's language. Delete stands apart in the bottom bar. Long map names fit the menu on narrow phones. Each link and the line under its node are now drawn as one.
