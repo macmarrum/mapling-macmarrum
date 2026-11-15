@@ -69,6 +69,8 @@ It takes the whole window, as on a tablet.
   #node-bar { position: relative; display: flex; justify-content: center; background: var(--node-bar); color: var(--forest); }
   #node-bar .icon-button { width: 56px; border-radius: 0; }
   #node-bar .icon-button:disabled { opacity: 0.3; }
+  /* Delete apart at the start, ⋮ at the end: a tap meant for another button deletes nothing. */
+  #node-bar [data-action="deleteNode"] { position: absolute; left: 0; }
   #node-bar [data-action="more"] { position: absolute; right: 0; }
   @media (max-width: 359px) { #node-bar .icon-button { width: 48px; } }
 
@@ -126,10 +128,10 @@ It takes the whole window, as on a tablet.
   </div>
   <div id="hints"></div>
   <div id="node-bar" data-with-map>
+    <button class="icon-button" data-action="deleteNode"><svg class="icon"><use href="icons.svg#delete"/></svg></button>
     <button class="icon-button" data-action="editText"><svg class="icon"><use href="icons.svg#edit"/></svg></button>
     <button class="icon-button" data-action="addChild"><svg class="icon"><use href="icons.svg#subdirectory_arrow_right"/></svg></button>
     <button class="icon-button" data-action="addSibling"><svg class="icon"><use href="icons.svg#add_row_below"/></svg></button>
-    <button class="icon-button" data-action="deleteNode"><svg class="icon"><use href="icons.svg#delete"/></svg></button>
     <button class="icon-button" data-action="more"><svg class="icon"><use href="icons.svg#more_vert"/></svg></button>
   </div>
 
