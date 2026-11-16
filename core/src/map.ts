@@ -63,6 +63,25 @@ export function webLink(value: string | null): string | null {
   }
 }
 
+/**
+ * The text a node keeps when its text is edited, as Freeplane keeps it: leading newlines go;
+ * trailing spaces and newlines go, after the last character that is neither a space nor a
+ * newline. A text of only spaces and newlines keeps its spaces: Freeplane counts them as
+ * leading, not trailing. Everything in the middle stays.
+ */
+export function editedText(text: string): string {
+  return text.replace(/^\n+/, '').replace(/(?<=[^ \n])[ \n]+$/, '');
+}
+
+/**
+ * The text a node shows: a text ending with a newline gets a zero-width space after it, so
+ * that the newline takes a line of its own, as in the editor (a browser does not draw a
+ * trailing newline without one).
+ */
+export function shownText(text: string): string {
+  return text.endsWith('\n') ? text + '\u200b' : text;
+}
+
 const ELEMENT_NODE = 1;
 const TEXT_NODE = 3;
 
@@ -221,6 +240,7 @@ export class MindMap {
   /** Sets the plain text of a node. Returns false when the text is unchanged. */
   updateText(key: string, text: string, now = Date.now()): boolean {
     this.checkEditable(key);
+    text = editedText(text);
     const el = this.element(key);
     if (el.getAttribute('TEXT') === text) return false;
     this.ensureId(el);
@@ -274,7 +294,7 @@ export class MindMap {
     this.checkMapEditable();
     const parent = this.element(parentKey);
     const el = this.doc.createElement('node');
-    el.setAttribute('TEXT', text);
+    el.setAttribute('TEXT', editedText(text));
     if (parent === this.rootEl) el.setAttribute('POSITION', POSITION[side]);
     el.setAttribute('ID', this.newId());
     el.setAttribute('CREATED', String(now));

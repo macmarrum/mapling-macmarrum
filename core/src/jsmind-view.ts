@@ -7,7 +7,7 @@
 // Browser only (needs jsMind and a DOM to draw in); verified end to end in a browser.
 
 import type { Bridge, Command, View } from './bridge.ts';
-import type { MindMap, Side, ViewNode } from './map.ts';
+import { editedText, shownText, type MindMap, type Side, type ViewNode } from './map.ts';
 import { DoubleTap, installTouchGestures, type TouchMap } from './touch.ts';
 
 // ---------- the parts of jsMind 0.9.1 used here (checked in its source) ----------
@@ -438,6 +438,8 @@ export class JsMindView implements View {
     };
     const editNodeEnd = view.edit_node_end.bind(view);
     view.edit_node_end = () => {
+      // The text is kept as the map keeps it (editedText), so that the node shows what is stored.
+      editor.value = editedText(editor.value);
       const node = view.editing_node;
       if (!node) return editNodeEnd(); // also the blur that removing the editor sets off
       this.keepStill(node, () => {
@@ -637,11 +639,11 @@ export class JsMindView implements View {
       // Icons on the left, the text as a block beside them, as in Freeplane.
       const text = document.createElement('span');
       text.className = 'mapling-text';
-      text.textContent = node.topic;
+      text.textContent = shownText(node.topic);
       element.textContent = ''; // not replaceChildren: Chromium 86, one past the minimum
       element.append(this.icons(link), text);
     } else {
-      element.textContent = node.topic;
+      element.textContent = shownText(node.topic);
     }
     element.classList.toggle('mapling-locked', !!node.data.readOnly);
     element.classList.toggle('mapling-hidden-content', !!node.data.hidden);
@@ -752,4 +754,3 @@ function fitHeight(editor: HTMLTextAreaElement): void {
 function side(node: JmNode): Side {
   return node.direction === -1 ? 'left' : 'right';
 }
-
